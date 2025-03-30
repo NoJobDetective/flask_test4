@@ -76,26 +76,14 @@
       margin-bottom: 10px;
       font-weight: bold;
       display: flex;
-      justify-content: space-between;
       align-items: center;
     }
-    /* 回答表示セクション */
-    .answer-section {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    /* コピー用ボタンのスタイル */
-    .copy-btn {
+    .question-section .copy-btn {
       background: none;
       border: none;
       cursor: pointer;
-      font-size: 1rem;
       margin-left: 5px;
-      color: #555;
-    }
-    .copy-btn:hover {
-      color: #000;
+      font-size: 1rem;
     }
     /* 中央セクション：回答 */
     .middle-section {
@@ -122,6 +110,14 @@
     }
     .toggle-comment:hover, .print-preview-btn:hover {
       background-color: #0056b3;
+    }
+    /* 回答コピー用ボタン */
+    .answer-copy-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      margin-top: 5px;
+      font-size: 1rem;
     }
     /* 下部セクション */
     .bottom-section {
@@ -238,15 +234,12 @@
         <div class="banner" id="banner{{ project.id }}">
           <!-- 質問表示 -->
           <div class="question-section">
-            <div id="question-text-{{ project.id }}">
-              <strong>質問:</strong> {{ project.question }}
-            </div>
-            <button type="button" class="copy-btn" onclick="copyText('question-text-{{ project.id }}')">
-              <i class="fas fa-copy"></i>
-            </button>
+            <strong>質問:</strong>
+            <span id="question-text-{{ project.id }}">{{ project.question }}</span>
+            <button type="button" onclick="copyText('question-text-{{ project.id }}')" class="copy-btn" title="コピー"><i class="fas fa-copy"></i></button>
           </div>
           <!-- 回答表示 -->
-          <div class="middle-section answer-section">
+          <div class="middle-section">
             <div id="answer-text-{{ project.id }}">
               {% set lines = project.answer.split('\n') %}
               {% if lines|length > 4 %}
@@ -264,9 +257,7 @@
                 </div>
               {% endif %}
             </div>
-            <button type="button" class="copy-btn" onclick="copyText('answer-text-{{ project.id }}')">
-              <i class="fas fa-copy"></i>
-            </button>
+            <button type="button" onclick="copyText('answer-text-{{ project.id }}')" class="answer-copy-btn" title="コピー"><i class="fas fa-copy"></i></button>
           </div>
           <!-- 下部セクション：登録日、評価、いいね、編集、削除 -->
           <div class="bottom-section">
@@ -310,6 +301,15 @@
   </div>
   
   <script>
+    function copyText(elementId) {
+      var text = document.getElementById(elementId).innerText;
+      navigator.clipboard.writeText(text).then(function() {
+        alert("コピーしました");
+      }, function(err) {
+        alert("コピーに失敗しました");
+      });
+    }
+    
     function toggleLike(projectId) {
       var liked = localStorage.getItem("liked_" + projectId);
       var url = liked ? "/unlike/" + projectId : "/like/" + projectId;
@@ -399,16 +399,6 @@
         printWindow.addEventListener('load', function() {
           printWindow.print();
         });
-      });
-    }
-    
-    // コピー機能の実装
-    function copyText(elementId) {
-      const text = document.getElementById(elementId).innerText;
-      navigator.clipboard.writeText(text).then(() => {
-        alert("コピーしました！");
-      }).catch(err => {
-        console.error('コピーに失敗しました:', err);
       });
     }
   </script>
