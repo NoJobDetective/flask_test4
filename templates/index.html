@@ -2,10 +2,8 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>WEBサイト感想投稿サイト</title>
+  <title>ChatGPTの回答アーカイブサイト</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <!-- QRCode.js の読み込み -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <!-- FontAwesome のCDN -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
   <!-- html2canvas と jsPDF の読み込み -->
@@ -72,38 +70,18 @@
       margin-left: auto;
       margin-right: auto;
     }
-    /* 上部セクション：flexレイアウトにgapを追加 */
-    .top-section {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 10px;
+    /* 質問表示セクション */
+    .question-section {
+      font-size: 1.2rem;
       margin-bottom: 10px;
+      font-weight: bold;
     }
-    .top-left {
-      flex: 0 0 150px;
-    }
-    .top-left img {
-      width: 150px;
-    }
-    .top-middle {
-      flex: 1;
-      text-align: left;
-    }
-    .top-right {
-      flex: 0 0 150px;
-      text-align: center;
-    }
-    /* URLリンクの折り返し */
-    .link a {
-      word-break: break-all;
-    }
-    /* 中央セクション：感想 */
+    /* 中央セクション：回答 */
     .middle-section {
       text-align: left;
       margin-bottom: 10px;
     }
-    /* コメントエリア（開閉対象） */
+    /* 回答エリア（開閉対象） */
     .comment-container {
       transition: max-height 0.3s ease;
     }
@@ -160,10 +138,6 @@
     }
     /* レスポンシブ対応 */
     @media screen and (max-width: 600px) {
-      .top-section {
-        flex-direction: column;
-        align-items: center;
-      }
       .bottom-section {
         flex-direction: column;
         text-align: center;
@@ -172,7 +146,7 @@
   </style>
 </head>
 <body>
-  <h1>WEBサイト感想投稿サイト</h1>
+  <h1>ChatGPTの回答アーカイブサイト</h1>
   <!-- 管理者権限の場合、一般ユーザ権限で閲覧するリンクを表示 -->
   {% if session.get("master") %}
     <div style="text-align: center; margin-bottom: 10px;">
@@ -189,12 +163,12 @@
   
   <!-- 入力フォーム -->
   <form method="POST">
-    <label for="url">URLを入力してください:</label>
-    <input type="text" id="url" name="url" required>
+    <label for="question">質問を入力してください:</label>
+    <input type="text" id="question" name="question" required>
     <br><br>
-    <label for="comment">URLに対する感想を入力してください:</label>
+    <label for="answer">ChatGPTからの回答を入力してください:</label>
     <br>
-    <textarea id="comment" name="comment" rows="4" placeholder="感想を入力してください"></textarea>
+    <textarea id="answer" name="answer" rows="4" placeholder="回答を入力してください"></textarea>
     <br><br>
     <label for="tags">タグ (カンマ区切り、最大5つ):</label>
     <input type="text" id="tags" name="tags" class="tags-input" placeholder="例: Python, Flask, Web">
@@ -241,28 +215,13 @@
     {% if projects %}
       {% for project in projects %}
         <div class="banner" id="banner{{ project.id }}">
-          <!-- 上部セクション：サムネイル、タイトル、URL、QRコード -->
-          <div class="top-section">
-            <div class="top-left">
-              {% if project.image %}
-                <img src="{{ project.image }}" alt="サムネイル">
-              {% else %}
-                <div class="placeholder">サムネイル取得不可</div>
-              {% endif %}
-            </div>
-            <div class="top-middle">
-              <div class="title">{{ project.title }}</div>
-              <div class="link">
-                <a href="{{ project.url }}" target="_blank">{{ project.url }}</a>
-              </div>
-            </div>
-            <div class="top-right">
-              <div id="qrcode{{ project.id }}"></div>
-            </div>
+          <!-- 質問表示 -->
+          <div class="question-section">
+            <strong>質問:</strong> {{ project.question }}
           </div>
-          <!-- 中央セクション：感想 -->
+          <!-- 回答表示 -->
           <div class="middle-section">
-            {% set lines = project.comment.split('\n') %}
+            {% set lines = project.answer.split('\n') %}
             {% if lines|length > 4 %}
               <div class="comment-container collapsed">
                 {% for line in lines %}
@@ -313,16 +272,6 @@
           </div>
           {% endif %}
         </div>
-        <script>
-          new QRCode(document.getElementById("qrcode{{ project.id }}"), {
-            text: "{{ project.url }}",
-            width: 128,
-            height: 128,
-            colorDark : "#000000",
-            colorLight : "#ffffff",
-            correctLevel : QRCode.CorrectLevel.H
-          });
-        </script>
       {% endfor %}
     {% else %}
       <p style="text-align:center;">入力されたデータはありません。</p>
@@ -394,8 +343,6 @@
     
     function printPreview(printBtn) {
       var banner = printBtn.closest('.banner');
-      // 印刷対象はバナー全体。印刷時は「タップで閉じる」ボタンと「印刷プレビューを表示」ボタンを表示上は非表示にする必要はあるが、
-      // 実際の処理ではそのまま出力します。
       html2canvas(banner).then(canvas => {
         const imgData = canvas.toDataURL('image/png');
         const { jsPDF } = window.jspdf;
