@@ -302,12 +302,32 @@
   
   <script>
     function copyText(elementId) {
-      var text = document.getElementById(elementId).innerText;
-      navigator.clipboard.writeText(text).then(function() {
-        alert("コピーしました");
-      }, function(err) {
-        alert("コピーに失敗しました");
-      });
+      var element = document.getElementById(elementId);
+      var text = element.innerText;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function() {
+          alert("コピーしました");
+        }).catch(function(err) {
+          alert("コピーに失敗しました: " + err);
+        });
+      } else {
+        // フォールバック: 一時的なtextareaを使用
+        var textarea = document.createElement("textarea");
+        textarea.value = text;
+        document.body.appendChild(textarea);
+        textarea.select();
+        try {
+          var successful = document.execCommand('copy');
+          if (successful) {
+            alert("コピーしました");
+          } else {
+            alert("コピーに失敗しました");
+          }
+        } catch (err) {
+          alert("コピーに失敗しました: " + err);
+        }
+        document.body.removeChild(textarea);
+      }
     }
     
     function toggleLike(projectId) {
