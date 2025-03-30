@@ -234,29 +234,28 @@
         <div class="banner" id="banner{{ project.id }}">
           <!-- 質問表示 -->
           <div class="question-section">
+            <strong>質問:</strong>
             <span id="question-text-{{ project.id }}">{{ project.question }}</span>
-            <button type="button" onclick="copyText('question-text-{{ project.id }}')" class="copy-btn" title="コピー"><i class="fas fa-copy"></i></button>
+            {% if project.question|trim %}
+              <button type="button" onclick="copyText('question-text-{{ project.id }}')" class="copy-btn" title="コピー"><i class="fas fa-copy"></i></button>
+            {% endif %}
           </div>
           <!-- 回答表示 -->
           <div class="middle-section">
             <div id="answer-text-{{ project.id }}">
               {% set lines = project.answer.split('\n') %}
-              {% if lines|length > 4 %}
-                <div class="comment-container collapsed">
-                  {% for line in lines %}
-                    {{ line }}<br>
-                  {% endfor %}
-                </div>
-                <button type="button" class="toggle-comment" onclick="toggleComment(this)">タップで開く</button>
-              {% else %}
-                <div class="comment-container">
-                  {% for line in lines %}
-                    {{ line }}<br>
-                  {% endfor %}
-                </div>
-              {% endif %}
+              <div class="comment-container {% if lines|length > 4 %}collapsed{% endif %}">
+                {% for line in lines %}
+                  {{ line }}<br>
+                {% endfor %}
+              </div>
             </div>
-            <button type="button" onclick="copyText('answer-text-{{ project.id }}')" class="answer-copy-btn" title="コピー"><i class="fas fa-copy"></i></button>
+            {% if lines|length > 4 %}
+              <button type="button" class="toggle-comment" onclick="toggleComment(this, 'answer-text-{{ project.id }}')">タップで開く</button>
+            {% endif %}
+            {% if project.answer|trim %}
+              <button type="button" onclick="copyText('answer-text-{{ project.id }}')" class="answer-copy-btn" title="コピー"><i class="fas fa-copy"></i></button>
+            {% endif %}
           </div>
           <!-- 下部セクション：登録日、評価、いいね、編集、削除 -->
           <div class="bottom-section">
@@ -302,7 +301,13 @@
   <script>
     function copyText(elementId) {
       var element = document.getElementById(elementId);
-      var text = element.innerText;
+      // 取得するテキストは、子要素（コピー対象）だけのinnerText
+      var text = element.innerText.trim();
+      // もしテキストが「http」から始まるなら、新しいタブで表示する
+      if(text.startsWith("http")) {
+        window.open(text, "_blank");
+        return;
+      }
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(text).then(function() {
           alert("コピーしました");
@@ -349,45 +354,15 @@
       });
     }
     
-    function toggleComment(button) {
-      var commentContainer = button.previousElementSibling;
-      var banner = button.closest('.banner');
-      if (commentContainer.classList.contains('collapsed')) {
-        // 他の開いているエリアを全て閉じる
-        var allContainers = document.querySelectorAll('.comment-container');
-        var allToggleButtons = document.querySelectorAll('.toggle-comment');
-        var allPrintButtons = document.querySelectorAll('.print-preview-btn');
-        allContainers.forEach(function(container) {
-          container.classList.add('collapsed');
-        });
-        allToggleButtons.forEach(function(btn) {
-          btn.textContent = 'タップで開く';
-        });
-        allPrintButtons.forEach(function(btn) {
-          btn.remove();
-        });
-        // 開く処理
-        commentContainer.classList.remove('collapsed');
+    // toggleComment関数は、指定されたコンテナ内の「comment-container」のみ操作
+    function toggleComment(button, containerId) {
+      var container = document.getElementById(containerId).querySelector('.comment-container');
+      if (container.classList.contains('collapsed')) {
+        container.classList.remove('collapsed');
         button.textContent = 'タップで閉じる';
-        // バナー全体の先頭が見えるようスクロール
-        banner.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        // 印刷プレビュー表示ボタンを追加（toggleボタンの右側）
-        if (!button.nextElementSibling || !button.nextElementSibling.classList.contains('print-preview-btn')) {
-          var printBtn = document.createElement('button');
-          printBtn.type = "button";
-          printBtn.className = "print-preview-btn";
-          printBtn.textContent = "印刷プレビューを表示";
-          printBtn.style.marginLeft = "10px";
-          printBtn.onclick = function() { printPreview(this); };
-          button.parentNode.insertBefore(printBtn, button.nextSibling);
-        }
       } else {
-        commentContainer.classList.add('collapsed');
+        container.classList.add('collapsed');
         button.textContent = 'タップで開く';
-        var nextSibling = button.nextElementSibling;
-        if (nextSibling && nextSibling.classList.contains('print-preview-btn')) {
-          nextSibling.remove();
-        }
       }
     }
     
