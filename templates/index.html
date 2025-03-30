@@ -130,7 +130,7 @@
     .bottom-section > div {
       margin: 5px 0;
     }
-    /* 登録日表示 */
+    /* 登録日時表示 */
     .reg-date {
       font-weight: bold;
     }
@@ -258,10 +258,10 @@
               <button type="button" onclick="copyText('answer-text-{{ project.id }}')" class="answer-copy-btn" title="コピー"><i class="fas fa-copy"></i></button>
             {% endif %}
           </div>
-          <!-- 下部セクション：登録日、評価、いいね、編集、削除 -->
+          <!-- 下部セクション：登録日時、評価、いいね、編集、削除 -->
           <div class="bottom-section">
             <div class="reg-date">
-              登録日: {{ project['登録日'] }}
+              登録日時: {{ project['登録日時'] }}
             </div>
             <div class="rating-display">
               評価: {{ project.rating | render_stars }}
