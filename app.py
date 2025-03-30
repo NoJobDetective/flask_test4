@@ -73,7 +73,8 @@ def index():
         projects.append(project)
         save_all_projects(projects)
         return redirect(url_for("index"))
-    sorted_projects = sorted(load_projects(), key=lambda p: float(p.get('rating', 0)), reverse=True)
+    # 登録が新しい順（登録日の降順）にソート
+    sorted_projects = sorted(load_projects(), key=lambda p: p.get('登録日'), reverse=True)
     return render_template("index.html", projects=sorted_projects)
 
 @app.route("/admin-login")
