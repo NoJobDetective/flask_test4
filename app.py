@@ -78,7 +78,7 @@ def index():
     tag_filter = request.args.get("tag", "").strip()
     if tag_filter:
         projects = [p for p in projects if tag_filter in p.get("tags", [])]
-    # 登録日が新しい順に表示（YYYY-MM-DD形式なので文字列での降順でOK）
+    # 登録日が新しい順に表示（YYYY-MM-DD形式なので文字列の降順でOK）
     sorted_projects = sorted(projects, key=lambda p: p.get('登録日', ""), reverse=True)
     return render_template("index.html", projects=sorted_projects)
 
