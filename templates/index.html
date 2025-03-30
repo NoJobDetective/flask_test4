@@ -232,7 +232,7 @@
     {% if projects %}
       {% for project in projects %}
         <div class="banner" id="banner{{ project.id }}">
-          <!-- 質問表示（不要な<strong>質問:</strong>は削除） -->
+          <!-- 質問表示 -->
           <div class="question-section">
             <span id="question-text-{{ project.id }}">{{ project.question }}</span>
             {% if project.question|trim %}
