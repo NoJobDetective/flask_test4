@@ -142,6 +142,8 @@
       border-radius: 4px;
       margin-right: 4px;
       margin-bottom: 4px;
+      text-decoration: none;
+      color: inherit;
     }
     /* タグの独立表示 */
     .tags {
@@ -285,7 +287,7 @@
             <div class="tag-label">タグ:</div>
             <div class="tag-list">
               {% for tag in project.tags %}
-                <span class="tag-box">{{ tag }}</span>
+                <a href="{{ url_for('index') }}?tag={{ tag }}" class="tag-box">{{ tag }}</a>
               {% endfor %}
             </div>
           </div>
@@ -300,7 +302,7 @@
   <script>
     function copyText(elementId) {
       var element = document.getElementById(elementId);
-      // 取得するテキストは、子要素（コピー対象）だけのinnerText
+      // 取得するテキストは、子要素（コピー対象）のinnerText
       var text = element.innerText.trim();
       // もしテキストが「http」から始まるなら、新しいタブで表示する
       if(text.startsWith("http")) {
