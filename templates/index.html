@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>WEBサイト感想投稿サイト</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- QRCode.js の読み込み -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <!-- FontAwesome のCDN -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+  <!-- html2canvas と jsPDF の読み込み -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    /* 全体の基本スタイル */
+    body {
+      margin: 0;
+      padding: 10px;
+      font-family: Arial, sans-serif;
+    }
+    h1, h2 {
+      text-align: center;
+    }
+    /* 入力フォームのスタイル */
+    form {
+      margin-bottom: 30px;
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    form input[type="text"],
+    form textarea {
+      width: 100%;
+      padding: 8px;
+      box-sizing: border-box;
+      font-size: 1rem;
+    }
+    /* タグ入力フィールドのスタイル */
+    .tags-input {
+      width: 100%;
+      padding: 8px;
+      box-sizing: border-box;
+      font-size: 1rem;
+      margin-bottom: 10px;
+    }
+    /* 星マーク採点のスタイル（10点満点） */
+    .star-rating {
+      direction: rtl;
+      display: inline-block;
+      font-size: 2rem;
+    }
+    .star-rating input[type="radio"] {
+      display: none;
+    }
+    .star-rating label {
+      color: #ccc;
+      cursor: pointer;
+    }
+    .star-rating input[type="radio"]:checked ~ label {
+      color: gold;
+    }
+    .star-rating label:hover,
+    .star-rating label:hover ~ label {
+      color: gold;
+    }
+    /* バナー全体のスタイル */
+    .banner {
+      border: 1px solid #ccc;
+      padding: 10px;
+      margin-bottom: 15px;
+      max-width: 800px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    /* 上部セクション：flexレイアウトにgapを追加 */
+    .top-section {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .top-left {
+      flex: 0 0 150px;
+    }
+    .top-left img {
+      width: 150px;
+    }
+    .top-middle {
+      flex: 1;
+      text-align: left;
+    }
+    .top-right {
+      flex: 0 0 150px;
+      text-align: center;
+    }
+    /* URLリンクの折り返し */
+    .link a {
+      word-break: break-all;
+    }
+    /* 中央セクション：感想 */
+    .middle-section {
+      text-align: left;
+      margin-bottom: 10px;
+    }
+    /* コメントエリア（開閉対象） */
+    .comment-container {
+      transition: max-height 0.3s ease;
+    }
+    .comment-container.collapsed {
+      max-height: 60px;
+      overflow: hidden;
+    }
+    .toggle-comment, .print-preview-btn {
+      display: inline-block;
+      margin-top: 5px;
+      padding: 4px 8px;
+      background-color: #007BFF;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .toggle-comment:hover, .print-preview-btn:hover {
+      background-color: #0056b3;
+    }
+    /* 下部セクション */
+    .bottom-section {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.9em;
+    }
+    .bottom-section > div {
+      margin: 5px 0;
+    }
+    /* 登録日表示 */
+    .reg-date {
+      font-weight: bold;
+    }
+    /* タグボックスのスタイル */
+    .tag-box {
+      display: inline-block;
+      border: 1px solid #ccc;
+      padding: 2px 4px;
+      border-radius: 4px;
+      margin-right: 4px;
+      margin-bottom: 4px;
+    }
+    /* タグの独立表示 */
+    .tags {
+      margin-top: 10px;
+    }
+    .tag-label {
+      font-weight: bold;
+    }
+    .tag-list {
+      margin-top: 5px;
+    }
+    /* レスポンシブ対応 */
+    @media screen and (max-width: 600px) {
+      .top-section {
+        flex-direction: column;
+        align-items: center;
+      }
+      .bottom-section {
+        flex-direction: column;
+        text-align: center;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>WEBサイト感想投稿サイト</h1>
+  <!-- 管理者権限の場合、一般ユーザ権限で閲覧するリンクを表示 -->
+  {% if session.get("master") %}
+    <div style="text-align: center; margin-bottom: 10px;">
+      <a href="{{ url_for('admin_logout') }}">一般ユーザ権限で閲覧する</a>
+    </div>
+  {% else %}
+    <div style="text-align: center; margin-bottom: 10px;">
+      <a href="{{ url_for('admin_login') }}">管理者権限でログイン</a>
+    </div>
+  {% endif %}
+  {% if error %}
+    <p style="color:red; text-align:center;">{{ error }}</p>
+  {% endif %}
+  
+  <!-- 入力フォーム -->
+  <form method="POST">
+    <label for="url">URLを入力してください:</label>
+    <input type="text" id="url" name="url" required>
+    <br><br>
+    <label for="comment">URLに対する感想を入力してください:</label>
+    <br>
+    <textarea id="comment" name="comment" rows="4" placeholder="感想を入力してください"></textarea>
+    <br><br>
+    <label for="tags">タグ (カンマ区切り、最大5つ):</label>
+    <input type="text" id="tags" name="tags" class="tags-input" placeholder="例: Python, Flask, Web">
+    <br><br>
+    <label for="rating">評価:</label>
+    <div class="star-rating">
+      <input type="radio" id="star10" name="rating" value="10">
+      <label for="star10" title="10点"><i class="fas fa-star"></i></label>
+      
+      <input type="radio" id="star9" name="rating" value="9">
+      <label for="star9" title="9点"><i class="fas fa-star"></i></label>
+      
+      <input type="radio" id="star8" name="rating" value="8">
+      <label for="star8" title="8点"><i class="fas fa-star"></i></label>
+      
+      <input type="radio" id="star7" name="rating" value="7">
+      <label for="star7" title="7点"><i class="fas fa-star"></i></label>
+      
+      <input type="radio" id="star6" name="rating" value="6">
+      <label for="star6" title="6点"><i class="fas fa-star"></i></label>
+      
+      <input type="radio" id="star5" name="rating" value="5" checked>
+      <label for="star5" title="5点"><i class="fas fa-star"></i></label>
+      
+      <input type="radio" id="star4" name="rating" value="4">
+      <label for="star4" title="4点"><i class="fas fa-star"></i></label>
+      
+      <input type="radio" id="star3" name="rating" value="3">
+      <label for="star3" title="3点"><i class="fas fa-star"></i></label>
+      
+      <input type="radio" id="star2" name="rating" value="2">
+      <label for="star2" title="2点"><i class="fas fa-star"></i></label>
+      
+      <input type="radio" id="star1" name="rating" value="1">
+      <label for="star1" title="1点"><i class="fas fa-star"></i></label>
+    </div>
+    <br><br>
+    <button type="submit">送信</button>
+  </form>
+  
+  <!-- 過去の入力データの表示 -->
+  <div class="project-list">
+    <h2>過去の入力データ</h2>
+    {% if projects %}
+      {% for project in projects %}
+        <div class="banner" id="banner{{ project.id }}">
+          <!-- 上部セクション：サムネイル、タイトル、URL、QRコード -->
+          <div class="top-section">
+            <div class="top-left">
+              {% if project.image %}
+                <img src="{{ project.image }}" alt="サムネイル">
+              {% else %}
+                <div class="placeholder">サムネイル取得不可</div>
+              {% endif %}
+            </div>
+            <div class="top-middle">
+              <div class="title">{{ project.title }}</div>
+              <div class="link">
+                <a href="{{ project.url }}" target="_blank">{{ project.url }}</a>
+              </div>
+            </div>
+            <div class="top-right">
+              <div id="qrcode{{ project.id }}"></div>
+            </div>
+          </div>
+          <!-- 中央セクション：感想 -->
+          <div class="middle-section">
+            {% set lines = project.comment.split('\n') %}
+            {% if lines|length > 4 %}
+              <div class="comment-container collapsed">
+                {% for line in lines %}
+                  {{ line }}<br>
+                {% endfor %}
+              </div>
+              <button type="button" class="toggle-comment" onclick="toggleComment(this)">タップで開く</button>
+            {% else %}
+              <div class="comment-container">
+                {% for line in lines %}
+                  {{ line }}<br>
+                {% endfor %}
+              </div>
+            {% endif %}
+          </div>
+          <!-- 下部セクション：登録日、評価、いいね、編集、削除 -->
+          <div class="bottom-section">
+            <div class="reg-date">
+              登録日: {{ project['登録日'] }}
+            </div>
+            <div class="rating-display">
+              評価: {{ project.rating | render_stars }}
+            </div>
+            <div class="like-section">
+              いいね: <span id="like-count-{{ project.id }}">{{ project.likes|default(0) }}</span>
+              <button onclick="toggleLike({{ project.id }})" style="background:none; border:none; cursor:pointer;">
+                <span id="like-icon-{{ project.id }}">👍いいね</span>
+              </button>
+            </div>
+            <div class="edit-link">
+              <a href="{{ url_for('edit', project_id=project.id) }}">編集する</a>
+            </div>
+            {% if session.get("master") %}
+              <div class="delete-link">
+                <a href="{{ url_for('delete', project_id=project.id) }}" onclick="return confirm('本当に削除しますか？');">削除する</a>
+              </div>
+            {% endif %}
+          </div>
+          <!-- タグ表示（タグが存在する場合のみ） -->
+          {% if project.tags and project.tags|length > 0 %}
+          <div class="tags">
+            <div class="tag-label">タグ:</div>
+            <div class="tag-list">
+              {% for tag in project.tags %}
+                <span class="tag-box">{{ tag }}</span>
+              {% endfor %}
+            </div>
+          </div>
+          {% endif %}
+        </div>
+        <script>
+          new QRCode(document.getElementById("qrcode{{ project.id }}"), {
+            text: "{{ project.url }}",
+            width: 128,
+            height: 128,
+            colorDark : "#000000",
+            colorLight : "#ffffff",
+            correctLevel : QRCode.CorrectLevel.H
+          });
+        </script>
+      {% endfor %}
+    {% else %}
+      <p style="text-align:center;">入力されたデータはありません。</p>
+    {% endif %}
+  </div>
+  
+  <script>
+    function toggleLike(projectId) {
+      var liked = localStorage.getItem("liked_" + projectId);
+      var url = liked ? "/unlike/" + projectId : "/like/" + projectId;
+      fetch(url, { method: "POST" })
+      .then(response => response.json())
+      .then(data => {
+        document.getElementById("like-count-" + projectId).textContent = data.likes;
+        if (liked) {
+          localStorage.removeItem("liked_" + projectId);
+          document.getElementById("like-icon-" + projectId).style.color = "";
+        } else {
+          localStorage.setItem("liked_" + projectId, "true");
+          document.getElementById("like-icon-" + projectId).style.color = "red";
+        }
+      })
+      .catch(error => {
+        console.error("Error:", error);
+      });
+    }
+    
+    function toggleComment(button) {
+      var commentContainer = button.previousElementSibling;
+      var banner = button.closest('.banner');
+      if (commentContainer.classList.contains('collapsed')) {
+        // 他の開いているエリアを全て閉じる
+        var allContainers = document.querySelectorAll('.comment-container');
+        var allToggleButtons = document.querySelectorAll('.toggle-comment');
+        var allPrintButtons = document.querySelectorAll('.print-preview-btn');
+        allContainers.forEach(function(container) {
+          container.classList.add('collapsed');
+        });
+        allToggleButtons.forEach(function(btn) {
+          btn.textContent = 'タップで開く';
+        });
+        allPrintButtons.forEach(function(btn) {
+          btn.remove();
+        });
+        // 開く処理
+        commentContainer.classList.remove('collapsed');
+        button.textContent = 'タップで閉じる';
+        // バナー全体の先頭が見えるようスクロール
+        banner.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        // 印刷プレビュー表示ボタンを追加（toggleボタンの右側）
+        if (!button.nextElementSibling || !button.nextElementSibling.classList.contains('print-preview-btn')) {
+          var printBtn = document.createElement('button');
+          printBtn.type = "button";
+          printBtn.className = "print-preview-btn";
+          printBtn.textContent = "印刷プレビューを表示";
+          printBtn.style.marginLeft = "10px";
+          printBtn.onclick = function() { printPreview(this); };
+          button.parentNode.insertBefore(printBtn, button.nextSibling);
+        }
+      } else {
+        commentContainer.classList.add('collapsed');
+        button.textContent = 'タップで開く';
+        var nextSibling = button.nextElementSibling;
+        if (nextSibling && nextSibling.classList.contains('print-preview-btn')) {
+          nextSibling.remove();
+        }
+      }
+    }
+    
+    function printPreview(printBtn) {
+      var banner = printBtn.closest('.banner');
+      // 印刷対象はバナー全体。印刷時は「タップで閉じる」ボタンと「印刷プレビューを表示」ボタンを表示上は非表示にする必要はあるが、
+      // 実際の処理ではそのまま出力します。
+      html2canvas(banner).then(canvas => {
+        const imgData = canvas.toDataURL('image/png');
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        const pageWidth = pdf.internal.pageSize.getWidth();
+        const pageHeight = pdf.internal.pageSize.getHeight();
+        const imgProps = pdf.getImageProperties(imgData);
+        const pdfImgWidth = pageWidth;
+        const pdfImgHeight = (imgProps.height * pdfImgWidth) / imgProps.width;
+        let heightLeft = pdfImgHeight;
+        let position = 0;
+        pdf.addImage(imgData, 'PNG', 0, position, pdfImgWidth, pdfImgHeight);
+        heightLeft -= pageHeight;
+        while (heightLeft > 0) {
+          position = heightLeft - pdfImgHeight;
+          pdf.addPage();
+          pdf.addImage(imgData, 'PNG', 0, position, pdfImgWidth, pdfImgHeight);
+          heightLeft -= pageHeight;
+        }
+        const blob = pdf.output("blob");
+        const blobUrl = URL.createObjectURL(blob);
+        const printWindow = window.open(blobUrl);
+        printWindow.addEventListener('load', function() {
+          printWindow.print();
+        });
+      });
+    }
+  </script>
+</body>
+</html>
