@@ -2,7 +2,7 @@ from flask import Flask, request, render_template, redirect, url_for, session, j
 import json
 import os
 import re  # 改行コード統一用
-from datetime import datetime, timezone, timedelta  # 登録日の自動入力用
+from datetime import datetime, timezone, timedelta  # 登録日時の自動入力用
 
 # JSTタイムゾーンの設定
 JST = timezone(timedelta(hours=9))
@@ -68,7 +68,7 @@ def index():
             "rating": rating,
             "likes": 0,
             "tags": tags,
-            "登録日": datetime.now(JST).strftime("%Y-%m-%d")  # 登録日(JST、日付のみ)
+            "登録日時": datetime.now(JST).strftime("%Y-%m-%d %H:%M:%S")  # 登録日時(JST)
         }
         projects.append(project)
         save_all_projects(projects)
@@ -78,8 +78,8 @@ def index():
     tag_filter = request.args.get("tag", "").strip()
     if tag_filter:
         projects = [p for p in projects if tag_filter in p.get("tags", [])]
-    # 登録日が新しい順に表示（YYYY-MM-DD形式なので文字列の降順でOK）
-    sorted_projects = sorted(projects, key=lambda p: p.get('登録日', ""), reverse=True)
+    # 登録日時が新しい順に表示（YYYY-MM-DD HH:MM:SS形式なので文字列での降順でOK）
+    sorted_projects = sorted(projects, key=lambda p: p.get('登録日時', ""), reverse=True)
     return render_template("index.html", projects=sorted_projects)
 
 @app.route("/admin-login")
